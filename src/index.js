@@ -2,8 +2,7 @@ import './style/index.css';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
-import { BasicCharacterControllerInput } from './BasicControllerInput';
+// import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
 // axis helper
 const setAxis = (obj) => {
