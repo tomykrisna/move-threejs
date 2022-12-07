@@ -336,15 +336,16 @@ let avatar = null
 const fog = new THREE.Fog("gray", 20, 80)
 scene.fog = fog
 scene.background = new THREE.Color("gray")
-const fbxLoader = new FBXLoader()
+const loadingFirst = new THREE.LoadingManager()
+loadingFirst.onStart = function () {
+	loadingElement.style.display = "flex"
+}
+const fbxLoader = new FBXLoader(loadingFirst)
 fbxLoader.load("./files/ninja/ninja.fbx", (fbx) => {
 	fbx.scale.set(.05, .05, .05)
 	fbx.traverse(e => e.castShadow = true)
 	avatar = fbx
 	const loadingManager = new THREE.LoadingManager()
-	loadingManager.onStart = function () {
-		loadingElement.style.display = "flex"
-	}
 	loadingManager.onLoad = () => {
 		loadingElement.style.display = "none"
 		isReady = true
