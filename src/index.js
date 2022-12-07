@@ -155,7 +155,6 @@ const TurnRight = {
 				currAction.clampWhenFinished = true;
 				currAction.reset()
 				currAction.setLoop(THREE.LoopOnce, 1)
-
 			}
 			currAction.crossFadeFrom(prevAction, 0.2, true)
 			currAction.play()
@@ -371,7 +370,7 @@ fbxLoader.load("./files/ninja/ninja.fbx", (fbx) => {
 	fbxLoader.load('./files/ninja/Idle.fbx', (e) => _OnLoad("idle", e))
 	fbxLoader.load('./files/ninja/Walk.fbx', (e) => _OnLoad("walk", e))
 	fbxLoader.load('./files/ninja/Run.fbx', (e) => _OnLoad("run", e))
-	fbxLoader.load('./files/ninja/Jump.fbx', (e) => _OnLoad("jump", e))
+	// fbxLoader.load('./files/ninja/Jump.fbx', (e) => _OnLoad("jump", e))
 	fbxLoader.load('./files/ninja/turn_right.fbx', (e) => _OnLoad("turnRight", e))
 	fbxLoader.load('./files/ninja/turn_left.fbx', (e) => _OnLoad("turnLeft", e))
 
@@ -470,8 +469,8 @@ mesh.position.z = -5
 // scene.add(mesh)
 // scene.add(new THREE.CameraHelper(directionalLight.shadow.camera))
 
-const acc = new THREE.Vector3()
-acc.add(mesh)
+// const acc = new THREE.Vector3()
+// acc.add(mesh)
 renderer.shadowMap.enabled = true
 renderer.outputEncoding = THREE.sRGBEncoding
 renderer.render(scene, camera)
@@ -481,7 +480,6 @@ window.addEventListener("resize", () => {
 	camera.aspect = window.innerWidth / window.innerHeight
 	camera.updateProjectionMatrix()
 })
-
 
 const clock = new THREE.Clock()
 let previousTime = 0
