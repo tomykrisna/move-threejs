@@ -23,6 +23,7 @@ const setGrid = obj => {
 const scene = new THREE.Scene()
 // canvas and render
 const canvas = document.querySelector(".webgl")
+const loadingElement = document.querySelector(".loading")
 const renderer = new THREE.WebGLRenderer({ canvas })
 renderer.setClearColor(0xAAAAAA)
 
@@ -178,7 +179,6 @@ const TurnLeft = {
 		const currAction = animationActions['turnLeft'].action
 		if (prevState) {
 			const prevAction = animationActions[prevState.name].action
-
 			currAction.clampWhenFinished = true;
 			currAction.reset()
 			currAction.setLoop(THREE.LoopOnce, 1)
@@ -322,30 +322,31 @@ let animationActions = {}
 let avatar = null
 // load model FBX
 // const gltfLoader = new GLTFLoader()
-// gltfLoader.load('./files/avatar.glb', (gltf) => {
+// gltfLoader.load('./files/myninja/ninja.glb', (gltf) => {
 // 	console.log("gltf", gltf.scenes);
-// 	// if (gltf) {
 // 	gltf.scenes[0].traverse(mesh => {
 // 		mesh.castShadow = true
 // 	})
-// 	// }
-// 	// if (animationActions && animationActions.walk) {
-
-// 	// }
 // 	gltf.scene.scale.set(5, 5, 5)
 // 	gltf.scene.position.x = -10
 // 	gltf.scene.castShadow = true
 // 	scene.add(gltf.scene)
 // })
 // load model FBX
+const fog = new THREE.Fog("gray", 20, 80)
+scene.fog = fog
+scene.background = new THREE.Color("gray")
 const fbxLoader = new FBXLoader()
 fbxLoader.load("./files/ninja/ninja.fbx", (fbx) => {
 	fbx.scale.set(.05, .05, .05)
 	fbx.traverse(e => e.castShadow = true)
-	// console.log("gltf", gltf);
 	avatar = fbx
 	const loadingManager = new THREE.LoadingManager()
+	loadingManager.onStart = function () {
+		loadingElement.style.display = "flex"
+	}
 	loadingManager.onLoad = () => {
+		loadingElement.style.display = "none"
 		isReady = true
 		StateObj.addState("idle", Idle)
 		StateObj.addState("walk", Walk)
@@ -452,7 +453,7 @@ const controlsInput = (delta) => {
 	}
 }
 
-const planeGeometry = new THREE.PlaneGeometry(50, 50, 1)
+const planeGeometry = new THREE.PlaneGeometry(300, 300, 1)
 const planeMaterial = new THREE.MeshPhongMaterial({ color: 0xCC8866, side: THREE.DoubleSide })
 const ground = new THREE.Mesh(planeGeometry, planeMaterial)
 ground.receiveShadow = true
