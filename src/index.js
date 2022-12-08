@@ -2,7 +2,7 @@ import './style/index.css';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader';
-// import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
 // axis helper
 const setAxis = (obj) => {
@@ -121,23 +121,25 @@ document.addEventListener('keyup', (e) => _onKeyUp(e), false);
 const Idle = {
 	name: "idle",
 	play: function (prevState) {
-		const currAction = animationActions['idle'].action
+		const currAction = animationActions[this.name].action
 		if (prevState) {
 			const prevAction = animationActions[prevState.name].action
 			currAction.enabled = true
 			currAction.crossFadeFrom(prevAction, 0.5, true)
 			currAction.play()
 		} else {
-			currAction.crossFadeFrom(animationActions.idle.action, 0.5, true)
+			currAction.crossFadeFrom(animationActions[this.name].action, 0.5, true)
 			currAction.play()
 		}
 	},
 	exit: function () { },
-	update: function (delta, input) {
+	update: function (_, input) {
 		if (input.forward) {
 			StateObj.set("walk")
+		} else if (input.backward) {
+			StateObj.set("walkingBackwards")
 		} else if (input.space) {
-			// StateObj.set("jump")
+			StateObj.set("jump")
 		} else if (input.right) {
 			StateObj.set("turnRight")
 		} else if (input.left) {
@@ -149,7 +151,7 @@ const Idle = {
 const TurnRight = {
 	name: "turnRight",
 	play: function (prevState) {
-		const currAction = animationActions['turnRight'].action
+		const currAction = animationActions[this.name].action
 		if (prevState) {
 			const prevAction = animationActions[prevState.name].action
 			if (prevState.name !== this.name) {
@@ -164,9 +166,8 @@ const TurnRight = {
 		}
 	},
 	exit: function () { },
-	update: function (delta, input) {
-		if (input.right) {
-
+	update: function (_, input) {
+		if (input.right || input.right) {
 			return
 		}
 		StateObj.set("idle")
@@ -176,7 +177,7 @@ const TurnRight = {
 const TurnLeft = {
 	name: "turnLeft",
 	play: function (prevState) {
-		const currAction = animationActions['turnLeft'].action
+		const currAction = animationActions[this.name].action
 		if (prevState) {
 			const prevAction = animationActions[prevState.name].action
 			currAction.clampWhenFinished = true;
@@ -189,12 +190,8 @@ const TurnLeft = {
 		}
 	},
 	exit: function () { },
-	update: function (delta, input) {
-		if (input.left) {
-			// StateObj.set("turnLeft")
-			return
-		} else if (input.right) {
-			// StateObj.set("turnRight")
+	update: function (_, input) {
+		if (input.left || input.right) {
 			return
 		}
 		StateObj.set("idle")
@@ -204,8 +201,7 @@ const TurnLeft = {
 const Walk = {
 	name: "walk",
 	play: function (prevState) {
-		const currAction = animationActions["walk"].action
-
+		const currAction = animationActions[this.name].action
 		if (prevState) {
 			const prevAction = animationActions[prevState.name].action
 			currAction.enabled = true
@@ -220,7 +216,7 @@ const Walk = {
 	},
 	exit: function () { },
 	update: (_, input) => {
-		if (input.forward || input.backward) {
+		if (input.forward) {
 			if (input.shift) {
 				StateObj.set("run")
 			}
@@ -230,10 +226,37 @@ const Walk = {
 	}
 }
 
+const WalkingBackwards = {
+	name: "walkingBackwards",
+	play: function (prevState) {
+		const currAction = animationActions[this.name].action
+		if (prevState) {
+			const prevAction = animationActions[prevState.name].action
+			currAction.enabled = true
+			currAction.time = 2.0;
+			currAction.setEffectiveTimeScale(1.0);
+			currAction.setEffectiveWeight(1.0);
+			currAction.crossFadeFrom(prevAction, 0.5, true)
+			currAction.play()
+		} else {
+			currAction.play()
+		}
+	},
+	exit: function () { },
+	update: (_, input) => {
+		if (input.backward) {
+			return;
+		} else if (input.forward) {
+			StateObj.set("walk")
+		}
+		StateObj.set("idle")
+	}
+}
+
 const Run = {
 	name: "run",
 	play: function (prevState) {
-		const currAction = animationActions["run"].action
+		const currAction = animationActions[this.name].action
 		if (prevState) {
 			const prevAction = animationActions[prevState.name].action
 			currAction.enabled = true
@@ -261,12 +284,11 @@ const Run = {
 const Jump = {
 	name: "jump",
 	play: function (prevState) {
-		const currAction = animationActions["jump"].action
+		const currAction = animationActions[this.name].action
 		const mixer = currAction.getMixer()
-		mixer.addEventListener("finished", () => { })
+		mixer.addEventListener("finished", () => { this.finishCallback() })
 		if (prevState) {
 			const prevAction = animationActions[prevState.name].action
-			currAction.enabled = true
 			currAction.reset()
 			currAction.setLoop(THREE.LoopOnce, 1)
 			currAction.clampWhenFinished = true
@@ -280,11 +302,11 @@ const Jump = {
 	},
 	finishCallback: function () {
 		this.exit()
+		StateObj.set("idle")
 	},
 	exit: function () {
-		const action = animationActions["jump"].action
-		action.getMixer().removeEventListener("finished", () => { console.log("out"); })
-		StateObj.set("idle")
+		const action = animationActions[this.name].action
+		action.getMixer().removeEventListener("finished", () => { })
 	},
 	update: (_, input) => {
 
@@ -319,29 +341,57 @@ const StateObj = {
 let isReady = false
 let mixer
 let animationActions = {}
+// let gltfAnimations = []
 let avatar = null
 // load model FBX
-// const gltfLoader = new GLTFLoader()
-// gltfLoader.load('./files/myninja/ninja.glb', (gltf) => {
-// 	console.log("gltf", gltf.scenes);
-// 	gltf.scenes[0].traverse(mesh => {
-// 		mesh.castShadow = true
-// 	})
-// 	gltf.scene.scale.set(5, 5, 5)
-// 	gltf.scene.position.x = -10
-// 	gltf.scene.castShadow = true
-// 	scene.add(gltf.scene)
+
+// const gltfManager = new THREE.LoadingManager()
+// gltfManager.onStart = function () {
+// 	loadingElement.style.display = "flex"
+// }
+// gltfManager.onLoad = function () {
+// 	console.log("gltf", gltfAnimations);
+// 	isReady = true
+// 	StateObj.addState("Idle", Idle)
+// 	StateObj.addState("Walking", Walk)
+// 	StateObj.addState("Running", Run)
+// 	// StateObj.addState("jump", Jump)
+// 	StateObj.addState("turn_right", TurnRight)
+// 	StateObj.addState("turn_left", TurnLeft)
+// 	StateObj.set("Idle")
+// 	loadingElement.style.display = "none"
+// }
+// const gltfLoader = new GLTFLoader(gltfManager)
+// gltfLoader.load('./files/ninja/avatar.glb', function (gltf) {
+// const root = gltf.scenes[0]
+// root.traverse(mesh => {
+// 	mesh.castShadow = true
 // })
+// root.castShadow = true
+// root.scale.set(5, 5, 5)
+// avatar = root
+// mixer = new THREE.AnimationMixer(avatar)
+// gltfAnimations = gltf.animations.map(function (item) {
+// 	const action = mixer.clipAction(item)
+// 	return {
+// 		action,
+// 		name: item.name,
+// 		clip: item,
+// 	}
+// })
+// scene.add(avatar)
+// })
+
 // load model FBX
-const fog = new THREE.Fog("gray", 20, 80)
+const fog = new THREE.Fog("#c4c4c4", 20, 80)
 scene.fog = fog
-scene.background = new THREE.Color("gray")
+scene.background = new THREE.Color("#c4c4c4")
 const loadingFirst = new THREE.LoadingManager()
 loadingFirst.onStart = function () {
 	loadingElement.style.display = "flex"
 }
 const fbxLoader = new FBXLoader(loadingFirst)
-fbxLoader.load("./files/ninja/ninja.fbx", (fbx) => {
+fbxLoader.load("./files/swat/Swat.fbx", (fbx) => {
 	fbx.scale.set(.05, .05, .05)
 	fbx.traverse(e => e.castShadow = true)
 	avatar = fbx
@@ -351,8 +401,9 @@ fbxLoader.load("./files/ninja/ninja.fbx", (fbx) => {
 		isReady = true
 		StateObj.addState("idle", Idle)
 		StateObj.addState("walk", Walk)
+		StateObj.addState("walkingBackwards", WalkingBackwards)
 		StateObj.addState("run", Run)
-		// StateObj.addState("jump", Jump)
+		StateObj.addState("jump", Jump)
 		StateObj.addState("turnRight", TurnRight)
 		StateObj.addState("turnLeft", TurnLeft)
 		StateObj.set("idle")
@@ -360,7 +411,7 @@ fbxLoader.load("./files/ninja/ninja.fbx", (fbx) => {
 	mixer = new THREE.AnimationMixer(avatar)
 
 	const _OnLoad = (animName, anim) => {
-		const clip = anim.animations[0];
+		const clip = anim.animations.find(i => i.name === "mixamo.com")
 		const action = mixer.clipAction(clip);
 		animationActions[animName] = {
 			clip,
@@ -369,13 +420,13 @@ fbxLoader.load("./files/ninja/ninja.fbx", (fbx) => {
 		};
 	};
 	const fbxLoader = new FBXLoader(loadingManager)
-	fbxLoader.load('./files/ninja/Idle.fbx', (e) => _OnLoad("idle", e))
-	fbxLoader.load('./files/ninja/Walk.fbx', (e) => _OnLoad("walk", e))
-	fbxLoader.load('./files/ninja/Run.fbx', (e) => _OnLoad("run", e))
-	// fbxLoader.load('./files/ninja/Jump.fbx', (e) => _OnLoad("jump", e))
-	fbxLoader.load('./files/ninja/turn_right.fbx', (e) => _OnLoad("turnRight", e))
-	fbxLoader.load('./files/ninja/turn_left.fbx', (e) => _OnLoad("turnLeft", e))
-
+	fbxLoader.load('./files/swat/Run.fbx', (e) => _OnLoad("run", e))
+	fbxLoader.load('./files/swat/Jump.fbx', (e) => _OnLoad("jump", e))
+	fbxLoader.load('./files/swat/Idle.fbx', (e) => _OnLoad("idle", e))
+	fbxLoader.load('./files/swat/Walk.fbx', (e) => _OnLoad("walk", e))
+	fbxLoader.load('./files/swat/TurnLeft.fbx', (e) => _OnLoad("turnLeft", e))
+	fbxLoader.load('./files/swat/TurnRight.fbx', (e) => _OnLoad("turnRight", e))
+	fbxLoader.load('./files/swat/Walking Backwards.fbx', (e) => _OnLoad("walkingBackwards", e))
 	scene.add(avatar)
 }
 )
@@ -409,19 +460,19 @@ const controlsInput = (delta) => {
 	const _R = controlObj.quaternion.clone()
 	const acc = _acceleration.clone();
 
-	if (_keys.shift) {
-		acc.multiplyScalar(2.0)
+	if (_keys.shift && !_keys.backward) {
+		acc.multiplyScalar(3.0)
 	}
 
-	if (StateObj.currentState.name === "jump") {
-		acc.multiplyScalar(0.0)
-	}
+	// if (StateObj.currentState.name === "walk") {
+	// 	acc.multiplyScalar(0.0)
+	// }
 
 	if (_keys.forward) {
-		velocity.z += acc.z * delta * 0.8
+		velocity.z += acc.z * delta * 0.7
 	}
 	if (_keys.backward) {
-		velocity.z -= acc.z * delta
+		velocity.z -= acc.z * delta * 0.3
 	}
 	if (_keys.left) {
 		_V.set(0, 1, 0)
@@ -446,7 +497,7 @@ const controlsInput = (delta) => {
 
 	sideways.multiplyScalar(velocity.x * delta);
 	forward.multiplyScalar(velocity.z * delta);
-	// sideways.multiplyScalar(0 * 0.01);
+
 	controlObj.position.add(forward)
 	controlObj.position.add(sideways)
 	if (mixer) {
@@ -454,25 +505,56 @@ const controlsInput = (delta) => {
 	}
 }
 
+const textureLoader = new THREE.TextureLoader()
+const colorTexture = textureLoader.load("./files/grass/BaseColor.jpg")
+const normalTexture = textureLoader.load("./files/grass/Normal.jpg")
+const roughnessTexture = textureLoader.load("./files/grass/Roughness.jpg")
+const ambientTexture = textureLoader.load("./files/grass/AmbientOcclusion.jpg")
+const heightTexture = textureLoader.load("./files/grass/Height.png")
+
+// colorTexture.magFilter = THREE.NearestFilter
+// colorTexture.generateMipmaps = false
+colorTexture.repeat.set(20, 20)
+colorTexture.wrapS = THREE.RepeatWrapping
+colorTexture.wrapT = THREE.RepeatWrapping
+
+// normalTexture.magFilter = THREE.NearestFilter
+// normalTexture.generateMipmaps = false
+normalTexture.repeat.set(20, 20)
+normalTexture.wrapS = THREE.RepeatWrapping
+normalTexture.wrapT = THREE.RepeatWrapping
+
+// roughnessTexture.magFilter = THREE.NearestFilter
+// roughnessTexture.generateMipmaps = false
+roughnessTexture.repeat.set(20, 20)
+roughnessTexture.wrapS = THREE.RepeatWrapping
+roughnessTexture.wrapT = THREE.RepeatWrapping
+
+ambientTexture.repeat.set(20, 20)
+ambientTexture.wrapS = THREE.RepeatWrapping
+ambientTexture.wrapT = THREE.RepeatWrapping
+
+heightTexture.repeat.set(20, 20)
+heightTexture.wrapS = THREE.RepeatWrapping
+heightTexture.wrapT = THREE.RepeatWrapping
+
 const planeGeometry = new THREE.PlaneGeometry(300, 300, 1)
-const planeMaterial = new THREE.MeshPhongMaterial({ color: 0xCC8866, side: THREE.DoubleSide })
-const ground = new THREE.Mesh(planeGeometry, planeMaterial)
+const planeMaterial = new THREE.MeshStandardMaterial({
+	map: colorTexture,
+	displacementMap: heightTexture,
+	roughnessMap: roughnessTexture,
+	normalMap: normalTexture,
+	aoMap: ambientTexture
+})
+planeMaterial.displacementScale = 0.5
+const phongMaterial = new THREE.MeshPhongMaterial({ color: 0xCC8866 })
+const ground = new THREE.Mesh(planeGeometry, phongMaterial)
 ground.receiveShadow = true
-ground.rotation.x = Math.PI * 0.5
+ground.rotation.x = -Math.PI * 0.5
 scene.add(ground)
 
-const geometry = new THREE.BoxGeometry(2, 2, 2)
-const material = new THREE.MeshPhongMaterial({ color: "salmon" })
-const mesh = new THREE.Mesh(geometry, material)
-mesh.castShadow = true
-mesh.position.y = 2
-mesh.position.x = 4
-mesh.position.z = -5
-// scene.add(mesh)
 // scene.add(new THREE.CameraHelper(directionalLight.shadow.camera))
 
-// const acc = new THREE.Vector3()
-// acc.add(mesh)
 renderer.shadowMap.enabled = true
 renderer.outputEncoding = THREE.sRGBEncoding
 renderer.render(scene, camera)
@@ -497,8 +579,6 @@ function animate(time) {
 	if (isReady) {
 		controlsInput(delta)
 	}
-	// console.log("keys", _keys);
-	// mesh.position.set(acc)
 	renderer.render(scene, camera)
 	window.requestAnimationFrame(animate)
 }
