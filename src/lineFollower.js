@@ -22,7 +22,7 @@ const scene = new THREE.Scene()
 // canvas and render
 const canvas = document.querySelector(".webgl")
 const renderer = new THREE.WebGLRenderer({ canvas })
-renderer.setClearColor(0xAAAAAA)
+renderer.setClearColor(0xBBBBBB)
 renderer.shadowMap.enabled = true
 renderer.setSize(window.innerWidth, window.innerHeight)
 // camera
@@ -36,10 +36,10 @@ scene.add(camera)
 const controls = new OrbitControls(camera, canvas)
 
 // light
-const ambientLight = new THREE.AmbientLight(0xffffff, .5)
+const ambientLight = new THREE.AmbientLight(0xBBBBBB, .5)
 scene.add(ambientLight)
 {
-	const directionalLight = new THREE.DirectionalLight(0xffffff, 1)
+	const directionalLight = new THREE.DirectionalLight(0xBBBBBB, 1)
 	directionalLight.position.set(0, 20, 0)
 	scene.add(directionalLight)
 }

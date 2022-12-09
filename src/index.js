@@ -343,44 +343,7 @@ let mixer
 let animationActions = {}
 // let gltfAnimations = []
 let avatar = null
-// load model FBX
 
-// const gltfManager = new THREE.LoadingManager()
-// gltfManager.onStart = function () {
-// 	loadingElement.style.display = "flex"
-// }
-// gltfManager.onLoad = function () {
-// 	console.log("gltf", gltfAnimations);
-// 	isReady = true
-// 	StateObj.addState("Idle", Idle)
-// 	StateObj.addState("Walking", Walk)
-// 	StateObj.addState("Running", Run)
-// 	// StateObj.addState("jump", Jump)
-// 	StateObj.addState("turn_right", TurnRight)
-// 	StateObj.addState("turn_left", TurnLeft)
-// 	StateObj.set("Idle")
-// 	loadingElement.style.display = "none"
-// }
-// const gltfLoader = new GLTFLoader(gltfManager)
-// gltfLoader.load('./files/ninja/avatar.glb', function (gltf) {
-// const root = gltf.scenes[0]
-// root.traverse(mesh => {
-// 	mesh.castShadow = true
-// })
-// root.castShadow = true
-// root.scale.set(5, 5, 5)
-// avatar = root
-// mixer = new THREE.AnimationMixer(avatar)
-// gltfAnimations = gltf.animations.map(function (item) {
-// 	const action = mixer.clipAction(item)
-// 	return {
-// 		action,
-// 		name: item.name,
-// 		clip: item,
-// 	}
-// })
-// scene.add(avatar)
-// })
 
 // load model FBX
 const fog = new THREE.Fog("#c4c4c4", 20, 80)
@@ -391,7 +354,7 @@ loadingFirst.onStart = function () {
 	loadingElement.style.display = "flex"
 }
 const fbxLoader = new FBXLoader(loadingFirst)
-fbxLoader.load("./files/swat/Swat.fbx", (fbx) => {
+fbxLoader.load("./files/swat/Walk.fbx", (fbx) => {
 	fbx.scale.set(.05, .05, .05)
 	fbx.traverse(e => e.castShadow = true)
 	avatar = fbx
@@ -547,8 +510,7 @@ const planeMaterial = new THREE.MeshStandardMaterial({
 	aoMap: ambientTexture
 })
 planeMaterial.displacementScale = 0.5
-const phongMaterial = new THREE.MeshPhongMaterial({ color: 0xCC8866 })
-const ground = new THREE.Mesh(planeGeometry, phongMaterial)
+const ground = new THREE.Mesh(planeGeometry)
 ground.receiveShadow = true
 ground.rotation.x = -Math.PI * 0.5
 scene.add(ground)
